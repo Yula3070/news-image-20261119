@@ -4,15 +4,16 @@
 [![rank](https://make.fun/badge/news-image-20261119/Yula3070/news-image-20261119/rank.svg)](https://make.fun/bounty/news-image-20261119/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=news-image-20261119)
 [![reward](https://make.fun/badge/news-image-20261119/Yula3070/news-image-20261119/reward.svg)](https://make.fun/bounty/news-image-20261119?utm_source=github&utm_medium=readme&utm_campaign=news-image-20261119)
 
-The Daily Globe — Thursday 19 November 2026. One front page carrying forty-five real stories from six continents: GTA VI goes on sale worldwide, Trump and Putin meet in China, and the world court hands down its Myanmar ruling.
+The Daily Globe — Thursday 19 November 2026. One front page carrying forty-two real stories from six continents: the first three-way summit in Shenzhen, GTA VI goes on sale worldwide, and the world court hands down its Myanmar ruling.
 
 ## What the page shows
 
-- **3 lead stories** with their own flat-vector drawings: the GTA VI launch, the Trump–Putin meeting, and the Myanmar ruling at the world court.
-- **10 more illustrated stories** in two rows of five: Voyager 1 at one light-day, Anthropic's $83 IPO, Nvidia's $115.8bn quarter, Gemini 4 Neon, the EU's €45bn Ukraine loan, Australia's settler sanctions, Grimes' 47 points for the Lakers, the Jakarta palace sweep, Cyclone Akvan, and the S&P 500's fifth straight fall.
-- **A flat world atlas** with numbered pins for stories 1–13 and dots for briefs 14–45.
-- **BY THE NUMBERS**: 99, $115.8bn, 47, $83.
-- **ALSO**: 32 further stories from the day, numbered 14–45.
+- **3 lead stories** with their own flat-vector drawings: the first three-way summit in Shenzhen, the GTA VI launch, and Anthropic's record IPO.
+- **10 more illustrated stories** in two rows of five: the world court's Myanmar ruling, COP31's final 48 hours, Cyclone Akvan, Ukraine left off the Shenzhen agenda, the APEC Shenzhen Declaration, flooded Florida, Mélenchon in Paris, the Saudi all-clear, the Libya drug seizure, and Earth's missing billion years.
+- **A region strip** whose counts are computed from the story list, and a **big-number strip**: $81.3bn, 15.9m, 200,000, $120bn, 730,000, 13 yrs.
+- **A flat world atlas** with numbered pins for stories 1–13 and dots for briefs 14–42.
+- **A DATE CHECK box**: stories first reported on Wednesday 18 November are named and kept out of Thursday's count.
+- **ALSO**: 29 further stories from the day, numbered 14–42.
 
 ## Run it
 

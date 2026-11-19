@@ -1,17 +1,28 @@
 #!/usr/bin/env python3
-"""The Daily Globe, Thursday 19 November 2026 — a one-page front page.
+"""The Daily Globe, Thursday 19 November 2026 — Round 3 front page.
 
 Rendered end to end with PIL into a 1024x1024 PNG. Every picture is a
 flat vector shape drawn by the code below: no photographs, no borrowed
 artwork, no files fetched from anywhere. The output is deterministic —
 running this script twice writes byte-identical PNGs.
 
-Layout from the top of the page down:
-  pine masthead with a gold kicker line, then three big illustrated leads,
-  then ten illustrated stories in two rows of five, then a BY THE NUMBERS
-  strip, then a flat world atlas with numbered pins beside an ALSO list of
-  thirty-two short stories, then a sources footer. Forty-five stories in
-  all, from six continents.
+Round 3 rebuilds the page on the structure the day's strongest front
+pages share, with our own drawings and our own words throughout:
+  cream masthead with the date as the headline, a region strip whose
+  counts are computed from the story list, a big-number strip, three
+  illustrated leads, ten illustrated stories in two rows of five, a
+  larger world atlas with numbered pins beside twenty-nine short
+  stories, a DATE CHECK box that keeps Wednesday's news out of
+  Thursday's page, then a sources footer. Forty-two stories in all.
+
+Date discipline (the Round 2 lesson): Round 2 counted as Thursday
+stories that were first reported on Wednesday 18 November — the
+Voyager 1 one-light-day crossing, the EU's proposed 45bn loan, the
+Gemini 4 model card. Round 3 moves those into the DATE CHECK box and
+leads with the three stories the whole day agrees on: the first
+three-way summit in Shenzhen, GTA VI's release day, and Anthropic's
+record IPO. The summit is a three-way meeting — Trump, Xi and Putin —
+not a two-way one.
 """
 
 import hashlib
@@ -27,11 +38,9 @@ PAL = {
     "paper": (247, 243, 232),
     "ink": (28, 28, 26),
     "pine": (16, 54, 41),
-    "pine_dark": (10, 38, 29),
     "cream": (247, 240, 222),
     "cream_dim": (214, 204, 178),
     "gilt": (208, 170, 64),
-    "gilt_soft": (226, 205, 140),
     "ruby": (178, 34, 34),
     "teal": (14, 106, 106),
     "slate": (112, 108, 96),
@@ -53,8 +62,18 @@ REGION = {
     "ASIA": (176, 132, 20),
     "OCEANIA": (14, 106, 106),
     "GLOBAL": (110, 70, 150),
-    "SPACE": (70, 70, 110),
 }
+
+# Region strip order: (label, regions counted under it, tab colour)
+STRIP = [
+    ("EUROPE", ["EUROPE"], (36, 84, 160)),
+    ("THE AMERICAS", ["AMERICAS"], (34, 120, 60)),
+    ("ASIA-PACIFIC", ["ASIA"], (176, 132, 20)),
+    ("MIDEAST", ["MIDDLE EAST"], (178, 34, 34)),
+    ("AFRICA", ["AFRICA"], (176, 110, 32)),
+    ("OCEANIA", ["OCEANIA"], (14, 106, 106)),
+    ("WORLD", ["GLOBAL"], (110, 70, 150)),
+]
 
 FONT_DIR = "/usr/share/fonts/truetype/dejavu"
 FONT_FILES = {
@@ -261,69 +280,113 @@ def draw_atlas(pg, box, featured, briefs):
             continue
         px, py = project(story["lon"], story["lat"], box)
         tint = REGION.get(story["region"], PAL["slate"])
-        pg.disc(px, py, 9, tint, outline=PAL["white"], width=2)
-        f = face("sans-bold", 10)
+        pg.disc(px, py, 10, tint, outline=PAL["white"], width=2)
+        f = face("sans-bold", 11)
         label = str(story["num"])
-        pg.text((px - pg.width(label, f) / 2, py - 7), label, f, PAL["white"])
-    # Voyager 1 is off the map: a corner pin with an arrow pointing out.
-    vx, vy = x0 + w - 16, y0 + 14
-    pg.disc(vx, vy, 9, REGION["SPACE"], outline=PAL["white"], width=2)
-    f = face("sans-bold", 10)
-    pg.text((vx - 3, vy - 7), "4", f, PAL["white"])
-    pg.line([(vx + 10, vy), (x0 + w + 2, vy)], fill=PAL["ink"])
-    pg.text((vx - 64, vy + 11), "to Voyager 1 →", face("sans", 8), PAL["ink"])
+        pg.text((px - pg.width(label, f) / 2, py - 8), label, f, PAL["white"])
 
 # ---- flat illustrations (one per featured story) ---------------------------
 # Each sketch paints inside its own box (x, y, w, h). All shapes are
-# original PIL primitives; nothing is traced or copied. The subjects are
-# new for Thursday 19 November 2026.
+# original PIL primitives drawn for this round; nothing is traced or
+# copied. The subjects are new for Thursday 19 November 2026.
 
 
-def _gta(pg, box):
-    pg.fillbox(box, fill=(30, 16, 52))
-    for sx, sy in [(0.10, 0.18), (0.28, 0.10), (0.48, 0.16), (0.66, 0.10),
-                   (0.84, 0.18), (0.20, 0.30), (0.58, 0.28), (0.76, 0.30)]:
-        cx, cy = _pt(box, sx, sy)
-        pg.disc(cx, cy, 1, (255, 220, 120))
-    pg.ellipse(_box(box, 0.66, 0.06, 0.98, 0.42), fill=(255, 170, 80))
-    pg.ellipse(_box(box, 0.70, 0.10, 0.94, 0.38), fill=(255, 200, 120))
-    for bx, bw, bh in [(0.04, 0.10, 0.34), (0.16, 0.08, 0.46), (0.26, 0.12, 0.30),
-                       (0.40, 0.08, 0.40), (0.50, 0.10, 0.28)]:
-        pg.rect(_box(box, bx, 0.66 - bh, bx + bw, 0.66), fill=(16, 10, 34))
-    pg.rect(_box(box, 0, 0.66, 1, 1), fill=(14, 60, 90))
-    for px in (0.60, 0.88):
-        top = _pt(box, px, 0.52)
-        pg.line([top, _pt(box, px, 0.72)], fill=(10, 40, 30), width=3)
-        for dx, dy in [(-0.06, -0.06), (-0.02, -0.08), (0.03, -0.07), (0.07, -0.05)]:
-            pg.line([top, _pt(box, px + dx, 0.52 + dy)], fill=(10, 40, 30), width=2)
-    tx, ty = _pt(box, 0.06, 0.44)
-    pg.text((tx, ty), "VI", face("serif-bold", 40), (255, 220, 120))
-    pg.text((box[0] + 6, box[1] + box[3] - 15), "VICE CITY · GLOBAL LAUNCH",
-            face("sans-bold", 9), (230, 210, 250))
+def _flag_us(pg, x, y, w, h):
+    """Stars-and-stripes flag in a small box (x, y, w, h)."""
+    for i in range(7):
+        pg.rect((x, y + i * h / 7, x + w, y + (i + 1) * h / 7),
+                fill=(178, 34, 34) if i % 2 == 0 else PAL["white"])
+    pg.rect((x, y, x + w * 0.42, y + h * 4 / 7), fill=(30, 50, 120))
+    for r in range(3):
+        for c in range(4):
+            pg.disc(x + w * 0.06 + c * w * 0.10,
+                    y + h * 0.07 + r * h * 0.12, 1.2, PAL["white"])
 
 
-def _summit(pg, box):
+def _flag_cn(pg, x, y, w, h):
+    """China flag in a small box."""
+    pg.rect((x, y, x + w, y + h), fill=(200, 30, 30))
+    pg.disc(x + w * 0.22, y + h * 0.28, 3.5, (255, 220, 80))
+    for dx, dy in [(0.42, 0.14), (0.52, 0.30), (0.50, 0.48), (0.36, 0.52)]:
+        pg.disc(x + w * dx, y + h * dy, 1.8, (255, 220, 80))
+
+
+def _flag_ru(pg, x, y, w, h):
+    """Russia tricolour in a small box."""
+    pg.rect((x, y, x + w, y + h / 3), fill=PAL["white"])
+    pg.rect((x, y + h / 3, x + w, y + 2 * h / 3), fill=(30, 80, 180))
+    pg.rect((x, y + 2 * h / 3, x + w, y + h), fill=(200, 30, 30))
+
+
+def _summit3(pg, box):
+    """Three-way summit: three flags over a skyline and a round table."""
     pg.fillbox(box, fill=(232, 222, 196))
-    heights = [0.30, 0.42, 0.26, 0.50, 0.34, 0.46, 0.30, 0.40, 0.24]
-    for i, bx in enumerate([0.06, 0.16, 0.26, 0.36, 0.46, 0.56, 0.66, 0.76, 0.86]):
-        pg.rect(_box(box, bx, 0.58 - heights[i], bx + 0.07, 0.58),
-                fill=(120, 118, 110))
+    for bx, bw, bh in [(0.04, 0.09, 0.30), (0.15, 0.07, 0.44), (0.24, 0.10, 0.28),
+                       (0.66, 0.08, 0.40), (0.76, 0.10, 0.26), (0.88, 0.07, 0.36)]:
+        pg.rect(_box(box, bx, 0.58 - bh, bx + bw, 0.58), fill=(120, 118, 110))
     pg.rect(_box(box, 0, 0.58, 1, 1), fill=(210, 198, 168))
-    pg.ellipse(_box(box, 0.40, 0.52, 0.60, 0.82), fill=(176, 132, 20))
-    pg.ellipse(_box(box, 0.44, 0.58, 0.56, 0.76), fill=(232, 222, 196))
-    flag_sets = [(0.30, [(200, 40, 40), (255, 255, 255), (40, 60, 160)]),
-                 (0.58, [(255, 255, 255), (40, 60, 160), (200, 40, 40)])]
-    for fx, cols in flag_sets:
+    pg.ellipse(_box(box, 0.38, 0.52, 0.62, 0.80), fill=(176, 132, 20))
+    pg.ellipse(_box(box, 0.42, 0.58, 0.58, 0.76), fill=(232, 222, 196))
+    poles = [(0.12, _flag_us), (0.42, _flag_cn), (0.72, _flag_ru)]
+    for fx, draw_flag in poles:
         px, _ = _pt(box, fx, 0)
-        pg.line([_pt(box, fx, 0.18), _pt(box, fx, 0.44)], fill=PAL["ink"], width=2)
-        for j, col in enumerate(cols):
-            pg.rect(_box(box, fx, 0.18 + j * 0.07, fx + 0.10, 0.25 + j * 0.07),
-                    fill=col)
-    pg.text((box[0] + 6, box[1] + box[3] - 15), "BEIJING · ONE-ON-ONE THU",
+        pg.line([_pt(box, fx, 0.06), _pt(box, fx, 0.52)], fill=PAL["ink"], width=2)
+        fw = 0.20 * box[2]
+        fh = 0.20 * box[3]
+        draw_flag(pg, px, box[1] + 0.06 * box[3], fw, fh)
+    pg.text((box[0] + 6, box[1] + box[3] - 15), "SHENZHEN · APEC",
             face("sans-bold", 9), (60, 50, 30))
 
 
+def _gta(pg, box):
+    """Vice City at dusk: sunset bands, skyline, palms, big VI."""
+    pg.fillbox(box, fill=(46, 18, 66))
+    pg.rect(_box(box, 0, 0.30, 1, 0.46), fill=(150, 60, 110))
+    pg.rect(_box(box, 0, 0.46, 1, 0.62), fill=(230, 120, 80))
+    for sx, sy in [(0.08, 0.10), (0.24, 0.06), (0.44, 0.12), (0.62, 0.06),
+                   (0.82, 0.10), (0.16, 0.22), (0.56, 0.20), (0.74, 0.24)]:
+        cx, cy = _pt(box, sx, sy)
+        pg.disc(cx, cy, 1, (255, 220, 120))
+    pg.ellipse(_box(box, 0.36, 0.10, 0.64, 0.52), fill=(255, 190, 90))
+    pg.ellipse(_box(box, 0.40, 0.16, 0.60, 0.46), fill=(255, 220, 140))
+    for bx, bw, bh in [(0.02, 0.10, 0.30), (0.14, 0.08, 0.42), (0.24, 0.12, 0.26),
+                       (0.68, 0.09, 0.36), (0.79, 0.11, 0.28), (0.90, 0.07, 0.32)]:
+        pg.rect(_box(box, bx, 0.66 - bh, bx + bw, 0.66), fill=(20, 10, 40))
+    pg.rect(_box(box, 0, 0.66, 1, 1), fill=(14, 60, 90))
+    for px in (0.58, 0.90):
+        top = _pt(box, px, 0.50)
+        pg.line([top, _pt(box, px, 0.70)], fill=(10, 40, 30), width=3)
+        for dx, dy in [(-0.06, -0.06), (-0.02, -0.08), (0.03, -0.07), (0.07, -0.05)]:
+            pg.line([top, _pt(box, px + dx, 0.50 + dy)], fill=(10, 40, 30), width=2)
+    pg.text(_pt(box, 0.05, 0.40), "VI", face("serif-bold", 40), (255, 220, 120))
+    pg.text((box[0] + 6, box[1] + box[3] - 15), "VICE CITY · OUT TODAY",
+            face("sans-bold", 9), (230, 210, 250))
+
+
+def _ipo(pg, box):
+    """Anthropic IPO: green candlesticks climbing to $83 on a dark board."""
+    pg.fillbox(box, fill=(16, 40, 32))
+    candles = [(0.08, 0.62, 0.70, 0.16), (0.20, 0.52, 0.60, 0.16),
+               (0.32, 0.56, 0.62, 0.16), (0.44, 0.38, 0.48, 0.16),
+               (0.56, 0.42, 0.50, 0.16), (0.68, 0.26, 0.36, 0.16)]
+    for fx, fy0, fy1, fw in candles:
+        pg.rect(_box(box, fx, fy0, fx + fw, fy1), fill=(90, 220, 120))
+        pg.line([_pt(box, fx + fw / 2, fy0 - 0.06),
+                 _pt(box, fx + fw / 2, fy1 + 0.06)], fill=(90, 220, 120), width=2)
+    pg.line([_pt(box, 0.06, 0.74), _pt(box, 0.22, 0.60), _pt(box, 0.36, 0.64),
+             _pt(box, 0.52, 0.44), _pt(box, 0.68, 0.34), _pt(box, 0.84, 0.20)],
+            fill=(255, 220, 120), width=3)
+    pg.poly([_pt(box, 0.84, 0.20), _pt(box, 0.78, 0.20), _pt(box, 0.84, 0.30)],
+            fill=(255, 220, 120))
+    pg.text(_pt(box, 0.06, 0.06), "$83", face("serif-bold", 20), PAL["white"])
+    pg.text(_pt(box, 0.06, 0.34), "ANT · NASDAQ", face("sans-bold", 9),
+            (180, 220, 190))
+    pg.text((box[0] + 0.62 * box[2], box[1] + box[3] - 15), "FIRST TRADE TODAY",
+            face("sans-bold", 9), (180, 220, 190))
+
+
 def _court(pg, box):
+    """World Court: pediment, columns and scales on deep blue."""
     pg.fillbox(box, fill=(24, 44, 84))
     pg.poly([_pt(box, 0.10, 0.34), _pt(box, 0.50, 0.10), _pt(box, 0.90, 0.34)],
             fill=(232, 226, 208))
@@ -343,383 +406,432 @@ def _court(pg, box):
             face("sans-bold", 9), (200, 210, 230))
 
 
-def _voyager(pg, box):
-    pg.fillbox(box, fill=(10, 12, 26))
-    for sx, sy in [(0.55, 0.12), (0.70, 0.08), (0.94, 0.45), (0.95, 0.62),
-                   (0.30, 0.85), (0.55, 0.88), (0.08, 0.55)]:
-        cx, cy = _pt(box, sx, sy)
-        pg.disc(cx, cy, 1, PAL["white"])
-    pg.ellipse(_box(box, -0.05, 0.55, 0.25, 1.05), fill=(50, 110, 180))
-    pg.ellipse(_box(box, 0.0, 0.65, 0.16, 0.95), fill=(90, 160, 90))
-    for i in range(7):
-        cx, cy = _pt(box, 0.40 + i * 0.055, 0.58 - i * 0.045)
-        pg.disc(cx, cy, 2, PAL["gilt"])
-    px, py = _pt(box, 0.86, 0.18)
-    pg.poly([(px - 10, py - 3), (px + 10, py - 3), (px + 3, py + 6),
-             (px - 3, py + 6)], fill=(200, 200, 210))
-    pg.rect((px - 2, py + 6, px + 2, py + 15), fill=(150, 150, 160))
-    pg.text((box[0] + 6, box[1] + 6), "1 LIGHT-DAY",
-            face("sans-bold", 10), PAL["gilt"])
-
-
-def _ipo(pg, box):
-    pg.fillbox(box, fill=(16, 40, 32))
-    pg.line([_pt(box, 0.06, 0.72), _pt(box, 0.22, 0.58), _pt(box, 0.36, 0.64),
-             _pt(box, 0.52, 0.40), _pt(box, 0.68, 0.30)],
-            fill=(90, 220, 120), width=3)
-    pg.poly([_pt(box, 0.68, 0.30), _pt(box, 0.62, 0.30), _pt(box, 0.68, 0.40)],
-            fill=(90, 220, 120))
-    bx, by = _pt(box, 0.80, 0.34)
-    pg.d.pieslice([bx - 16, by - 14, bx + 16, by + 16], 180, 360, fill=PAL["gilt"])
-    pg.rect((bx - 18, by + 12, bx + 18, by + 18), fill=PAL["gilt"])
-    pg.ellipse((bx - 3, by + 18, bx + 3, by + 24), fill=PAL["gilt"])
-    pg.text(_pt(box, 0.06, 0.10), "$83", face("serif-bold", 18), PAL["white"])
-    pg.text(_pt(box, 0.06, 0.42), "A SHARE", face("sans-bold", 9),
-            (180, 220, 190))
-    pg.text((box[0] + 0.58 * box[2], box[1] + box[3] - 15), "NASDAQ · ANT",
-            face("sans-bold", 9), (180, 220, 190))
-
-
-def _nvidia(pg, box):
-    pg.fillbox(box, fill=(18, 26, 18))
-    cx, cy = _pt(box, 0.30, 0.50)
-    pin = (120, 200, 90)
-    for dx in (-26, -14, 0, 14, 26):
-        pg.line([(cx + dx, cy - 26), (cx + dx, cy - 34)], fill=pin, width=2)
-        pg.line([(cx + dx, cy + 26), (cx + dx, cy + 34)], fill=pin, width=2)
-    for dy in (-20, 0, 20):
-        pg.line([(cx - 26, cy + dy), (cx - 34, cy + dy)], fill=pin, width=2)
-        pg.line([(cx + 26, cy + dy), (cx + 34, cy + dy)], fill=pin, width=2)
-    pg.rect((cx - 26, cy - 26, cx + 26, cy + 26), fill=(30, 60, 30),
-            outline=pin, width=2)
-    pg.rect((cx - 14, cy - 14, cx + 14, cy + 14), fill=pin)
-    pg.line([_pt(box, 0.58, 0.78), _pt(box, 0.68, 0.60), _pt(box, 0.76, 0.66),
-             _pt(box, 0.92, 0.34)], fill=(90, 220, 120), width=3)
-    pg.poly([_pt(box, 0.92, 0.34), _pt(box, 0.86, 0.34), _pt(box, 0.92, 0.44)],
-            fill=(90, 220, 120))
-    pg.text(_pt(box, 0.52, 0.10), "$115.8bn", face("serif-bold", 16),
-            (140, 230, 140))
-    pg.text(_pt(box, 0.60, 0.82), "+103% YoY", face("sans-bold", 11),
-            (200, 220, 200))
-
-def _gemini(pg, box):
-    pg.fillbox(box, fill=(238, 240, 250))
-    cx, cy = _pt(box, 0.28, 0.50)
-    pg.poly([(cx, cy - 26), (cx + 7, cy - 7), (cx + 26, cy), (cx + 7, cy + 7),
-             (cx, cy + 26), (cx - 7, cy + 7), (cx - 26, cy), (cx - 7, cy - 7)],
-            fill=(90, 110, 230))
-    pg.poly([(cx, cy - 26), (cx + 4, cy - 4), (cx + 26, cy), (cx + 4, cy + 4),
-             (cx, cy + 26), (cx - 4, cy + 4), (cx - 26, cy), (cx - 4, cy - 4)],
-            fill=(140, 160, 250))
-    for sx, sy, r in [(0.05, 0.15, 4), (0.08, 0.72, 3), (0.48, 0.10, 5)]:
-        px, py = _pt(box, sx, sy)
-        pg.poly([(px, py - r * 2), (px + 1, py - 1), (px + r * 2, py),
-                 (px + 1, py + 1), (px, py + r * 2), (px - 1, py + 1),
-                 (px - r * 2, py), (px - 1, py - 1)], fill=(176, 132, 220))
-    pg.text(_pt(box, 0.56, 0.12), "GEMINI 4", face("serif-bold", 15),
-            (40, 50, 120))
-    pg.text(_pt(box, 0.56, 0.42), "NEON", face("sans-bold", 11), (90, 110, 230))
-    pg.text(_pt(box, 0.56, 0.62), "1M TOKENS", face("sans-bold", 9), PAL["slate"])
-
-
-def _eu(pg, box):
-    pg.fillbox(box, fill=(226, 232, 240))
-    pg.rect(_box(box, 0, 0, 1, 0.52), fill=(30, 60, 130))
-    cx, cy = _pt(box, 0.26, 0.26)
-    r = 0.17 * box[3]
-    for i in range(12):
-        a = math.pi * 2 * i / 12 - math.pi / 2
-        sx, sy = cx + r * math.cos(a), cy + r * math.sin(a)
-        pg.disc(sx, sy, 2, (255, 220, 80))
-    pg.rect(_box(box, 0.58, 0.08, 0.92, 0.24), fill=(40, 90, 170))
-    pg.rect(_box(box, 0.58, 0.24, 0.92, 0.40), fill=(240, 200, 60))
-    pg.text(_pt(box, 0.60, 0.42), "€45bn", face("serif-bold", 20), PAL["ink"])
-    pg.text(_pt(box, 0.06, 0.60), "FOR 2027", face("sans-bold", 11), PAL["slate"])
-    for bx in [0.08, 0.30, 0.52, 0.74]:
-        pg.ellipse(_box(box, bx, 0.76, bx + 0.14, 0.94), fill=PAL["gilt"],
-                   outline=(150, 110, 20))
-        pg.text(_pt(box, bx + 0.045, 0.78), "€", face("sans-bold", 12),
-                (120, 85, 10))
-
-
-def _australia(pg, box):
-    pg.fillbox(box, fill=(206, 226, 232))
-    outline_pts = [(0.10, 0.30), (0.22, 0.18), (0.40, 0.14), (0.60, 0.16),
-                   (0.78, 0.22), (0.88, 0.34), (0.84, 0.52), (0.70, 0.62),
-                   (0.52, 0.70), (0.34, 0.66), (0.18, 0.52), (0.08, 0.40)]
-    pg.poly([_pt(box, fx, fy) for fx, fy in outline_pts],
-            fill=(224, 200, 140), outline=(150, 120, 60))
-    sx, sy = _pt(box, 0.72, 0.48)
-    pg.disc(sx, sy, 6, PAL["ruby"])
-    pg.text((sx - 3, sy - 5), "*", face("sans-bold", 9), PAL["white"])
-    pg.text(_pt(box, 0.06, 0.08), "SANCTIONS", face("sans-bold", 10),
-            (20, 60, 90))
-    pg.text((box[0] + 6, box[1] + box[3] - 13), "CANBERRA · WEST BANK",
-            face("sans-bold", 8), (20, 60, 90))
-
-
-def _lakers(pg, box):
-    pg.fillbox(box, fill=(60, 30, 110))
-    cx, cy = _pt(box, 0.26, 0.52)
-    pg.ellipse((cx - 24, cy - 24, cx + 24, cy + 24), fill=(240, 130, 40),
-               outline=(180, 90, 20), width=2)
-    pg.line([(cx - 24, cy), (cx + 24, cy)], fill=(180, 90, 20), width=2)
-    pg.line([(cx, cy - 24), (cx, cy + 24)], fill=(180, 90, 20), width=2)
-    hx, hy = _pt(box, 0.78, 0.26)
-    pg.line([(hx - 16, hy), (hx + 16, hy)], fill=(255, 220, 120), width=3)
-    pg.line([(hx - 12, hy), (hx - 8, hy + 18)], fill=PAL["white"], width=1)
-    pg.line([(hx + 12, hy), (hx + 8, hy + 18)], fill=PAL["white"], width=1)
-    pg.line([(hx - 12, hy + 18), (hx + 12, hy + 18)], fill=PAL["white"], width=1)
-    pg.text(_pt(box, 0.52, 0.44), "47", face("serif-bold", 22), (255, 220, 120))
-    pg.text(_pt(box, 0.52, 0.72), "OT 118-114", face("sans-bold", 9),
-            (220, 200, 250))
-
-
-def _jakarta(pg, box):
-    pg.fillbox(box, fill=(214, 228, 236))
-    for bx, bw, bh in [(0.56, 0.10, 0.30), (0.68, 0.08, 0.44), (0.78, 0.12, 0.34)]:
-        pg.rect(_box(box, bx, 0.86 - bh, bx + bw, 0.86), fill=(120, 130, 140))
-    pg.rect(_box(box, 0, 0.86, 1, 1), fill=(90, 110, 90))
-    mx, _ = _pt(box, 0.30, 0)
-    top = box[1]
-    h = box[3]
-    pg.poly([(mx - 10, top + 0.82 * h), (mx - 6, top + 0.18 * h),
-             (mx + 6, top + 0.18 * h), (mx + 10, top + 0.82 * h)],
-            fill=(240, 238, 230), outline=(150, 145, 130))
-    pg.poly([(mx - 7, top + 0.18 * h), (mx, top + 0.06 * h),
-             (mx + 7, top + 0.18 * h)], fill=PAL["gilt"])
-    pg.ellipse((mx - 3, top + 0.02 * h, mx + 3, top + 0.10 * h),
-               fill=(255, 220, 80))
-    pg.rect(_box(box, 0.14, 0.82, 0.46, 0.90), fill=(200, 192, 170))
-    pg.text(_pt(box, 0.56, 0.10), "JAKARTA", face("sans-bold", 11), (30, 60, 90))
-    pg.text((box[0] + 6, box[1] + box[3] - 13), "PALACE SWEEP",
-            face("sans-bold", 8), (30, 60, 90))
+def _cop31(pg, box):
+    """COP31: sun over hills, a globe, and a long negotiating table."""
+    pg.fillbox(box, fill=(222, 232, 226))
+    pg.ellipse(_box(box, 0.68, 0.08, 0.94, 0.44), fill=(255, 190, 90))
+    pg.ellipse(_box(box, 0.72, 0.14, 0.90, 0.38), fill=(255, 220, 140))
+    pg.poly([_pt(box, 0, 0.55), _pt(box, 0.30, 0.30), _pt(box, 0.60, 0.55),
+             _pt(box, 1, 0.38), _pt(box, 1, 1), _pt(box, 0, 1)],
+            fill=(90, 140, 90))
+    pg.poly([_pt(box, 0, 0.70), _pt(box, 0.40, 0.48), _pt(box, 0.75, 0.70),
+             _pt(box, 1, 0.58), _pt(box, 1, 1), _pt(box, 0, 1)],
+            fill=(60, 110, 70))
+    cx, cy = _pt(box, 0.22, 0.62)
+    pg.ellipse((cx - 16, cy - 16, cx + 16, cy + 16), fill=(60, 120, 180),
+               outline=(30, 80, 140), width=2)
+    pg.ellipse((cx - 10, cy - 12, cx - 2, cy - 2), fill=(90, 160, 90))
+    pg.ellipse((cx + 2, cy + 2, cx + 10, cy + 12), fill=(90, 160, 90))
+    pg.rect(_box(box, 0.48, 0.72, 0.96, 0.80), fill=(120, 90, 60))
+    for fx in (0.54, 0.66, 0.78, 0.90):
+        pg.rect(_box(box, fx - 0.02, 0.64, fx + 0.02, 0.72), fill=(240, 240, 230))
+    pg.text((box[0] + 6, box[1] + box[3] - 13), "ANTALYA · FINAL 48 HOURS",
+            face("sans-bold", 8), (30, 60, 40))
 
 
 def _cyclone(pg, box):
+    """Cyclone Akvan: spiral over the Bay of Bengal, labels kept clear."""
     pg.fillbox(box, fill=(206, 226, 232))
-    pg.poly([_pt(box, 0.55, 0), _pt(box, 1, 0), _pt(box, 1, 1),
-             _pt(box, 0.72, 1), _pt(box, 0.62, 0.55), _pt(box, 0.70, 0.30)],
+    pg.poly([_pt(box, 0.58, 0), _pt(box, 1, 0), _pt(box, 1, 1),
+             _pt(box, 0.74, 1), _pt(box, 0.64, 0.55), _pt(box, 0.72, 0.30)],
             fill=(222, 214, 190))
-    cx, cy = _pt(box, 0.38, 0.52)
+    cx, cy = _pt(box, 0.36, 0.50)
     for k in range(5):
-        r1 = 12 + k * 7
+        r1 = 11 + k * 6
         pg.arc((cx - r1, cy - r1, cx + r1, cy + r1), 20 + k * 40, 200 + k * 40,
                fill=(20, 60, 110), width=3)
     pg.disc(cx, cy, 5, (20, 60, 110))
-    pg.line([_pt(box, 0.60, 0.30), _pt(box, 0.46, 0.44)], fill=PAL["ruby"], width=2)
-    pg.poly([_pt(box, 0.46, 0.44), _pt(box, 0.42, 0.40), _pt(box, 0.42, 0.48)],
+    pg.line([_pt(box, 0.58, 0.28), _pt(box, 0.46, 0.42)], fill=PAL["ruby"], width=2)
+    pg.poly([_pt(box, 0.46, 0.42), _pt(box, 0.42, 0.38), _pt(box, 0.42, 0.46)],
             fill=PAL["ruby"])
-    pg.text(_pt(box, 0.50, 0.08), "BAY OF BENGAL", face("sans-bold", 9),
+    lx, ly = _pt(box, 0.03, 0.03)
+    pg.rect((lx, ly, lx + 112, ly + 30), fill=(206, 226, 232))
+    pg.text(_pt(box, 0.06, 0.06), "BAY OF BENGAL", face("sans-bold", 9),
             (20, 60, 110))
-    pg.text(_pt(box, 0.50, 0.20), "LANDFALL 20 NOV", face("sans-bold", 9),
+    pg.text(_pt(box, 0.06, 0.20), "LANDFALL FRI", face("sans-bold", 9),
             PAL["ruby"])
 
 
-def _markets(pg, box):
-    pg.fillbox(box, fill=(240, 234, 220))
-    pg.line([_pt(box, 0.06, 0.22), _pt(box, 0.24, 0.34), _pt(box, 0.42, 0.30),
-             _pt(box, 0.60, 0.52), _pt(box, 0.78, 0.62), _pt(box, 0.92, 0.78)],
-            fill=PAL["ruby"], width=3)
-    pg.poly([_pt(box, 0.92, 0.78), _pt(box, 0.92, 0.68), _pt(box, 0.82, 0.78)],
-            fill=PAL["ruby"])
-    cx, cy = _pt(box, 0.80, 0.24)
-    pg.ellipse((cx - 14, cy - 14, cx + 14, cy + 14), fill=PAL["gilt"],
-               outline=(150, 110, 20), width=2)
-    pg.text((cx - 5, cy - 10), "$", face("serif-bold", 16), (120, 85, 10))
-    pg.text(_pt(box, 0.06, 0.08), "5TH DAY DOWN", face("sans-bold", 10),
-            PAL["ruby"])
-    pg.text((box[0] + 0.06 * box[2], box[1] + box[3] - 15), "S&P 500 -0.5%",
-            face("sans-bold", 9), PAL["ink"])
+def _kyiv(pg, box):
+    """Kyiv: golden domes under a blue-and-yellow sky."""
+    pg.fillbox(box, fill=(120, 170, 220))
+    pg.rect(_box(box, 0, 0.52, 1, 1), fill=(240, 220, 130))
+    pg.rect(_box(box, 0, 0.52, 1, 0.62), fill=(255, 215, 0))
+    pg.rect(_box(box, 0, 0.62, 1, 0.72), fill=(40, 90, 180))
+    for cx, cw, ch in [(0.18, 0.10, 0.30), (0.34, 0.08, 0.40), (0.48, 0.12, 0.34),
+                       (0.64, 0.08, 0.44), (0.78, 0.10, 0.30)]:
+        pg.rect(_box(box, cx, 0.72 - ch, cx + cw, 0.72), fill=(90, 80, 70))
+        dx = cx + cw / 2
+        pg.ellipse(_box(box, dx - 0.05, 0.72 - ch - 0.12, dx + 0.05, 0.72 - ch),
+                   fill=(255, 200, 60))
+        pg.line([_pt(box, dx, 0.72 - ch - 0.12), _pt(box, dx, 0.72 - ch - 0.20)],
+                fill=(90, 80, 70), width=1)
+    pg.text((box[0] + 6, box[1] + box[3] - 13), "KYIV · OFF THE AGENDA",
+            face("sans-bold", 8), (30, 50, 90))
+
+
+def _apec(pg, box):
+    """APEC declaration: a signed document, small flags along the top."""
+    pg.fillbox(box, fill=(226, 232, 240))
+    for i in range(6):
+        col = [(178, 34, 34), (34, 120, 60), (36, 84, 160)][i % 3]
+        pg.rect(_box(box, 0.05 + i * 0.16, 0.06, 0.17 + i * 0.16, 0.20),
+                fill=col)
+    pg.rect(_box(box, 0.16, 0.30, 0.84, 0.92), fill=PAL["white"],
+            outline=(150, 140, 110))
+    pg.rect(_box(box, 0.16, 0.30, 0.84, 0.44), fill=(16, 54, 41))
+    pg.text(_pt(box, 0.20, 0.33), "DECLARATION", face("sans-bold", 9),
+            PAL["white"])
+    for i, wy in enumerate((0.52, 0.64, 0.76)):
+        pg.line([_pt(box, 0.22, wy), _pt(box, 0.78, wy)], fill=(180, 172, 150))
+    pg.poly([_pt(box, 0.62, 0.82), _pt(box, 0.70, 0.82), _pt(box, 0.66, 0.88)],
+            fill=(178, 34, 34))
+    pg.text((box[0] + 6, box[1] + box[3] - 13), "21 ECONOMIES SIGN",
+            face("sans-bold", 8), (30, 50, 90))
+
+
+def _florida(pg, box):
+    """Flooded Florida: rain over a drowned street and a palm."""
+    pg.fillbox(box, fill=(150, 180, 205))
+    for sx in (0.10, 0.26, 0.44, 0.62, 0.80, 0.92):
+        pg.line([_pt(box, sx, 0.06), _pt(box, sx - 0.02, 0.22)],
+                fill=(90, 120, 150), width=2)
+    pg.rect(_box(box, 0, 0.62, 1, 1), fill=(70, 110, 150))
+    for bx, bw, bh in [(0.04, 0.12, 0.22), (0.20, 0.10, 0.30), (0.66, 0.12, 0.26),
+                       (0.82, 0.10, 0.20)]:
+        pg.rect(_box(box, bx, 0.62 - bh, bx + bw, 0.62), fill=(90, 85, 80))
+    top = _pt(box, 0.48, 0.30)
+    pg.line([top, _pt(box, 0.48, 0.62)], fill=(60, 50, 40), width=3)
+    for dx, dy in [(-0.08, -0.06), (-0.03, -0.09), (0.04, -0.08), (0.09, -0.05)]:
+        pg.line([top, _pt(box, 0.48 + dx, 0.30 + dy)], fill=(60, 50, 40), width=2)
+    pg.ellipse(_box(box, 0.30, 0.66, 0.38, 0.72), fill=(220, 225, 230))
+    pg.ellipse(_box(box, 0.60, 0.70, 0.72, 0.76), fill=(220, 225, 230))
+    pg.text((box[0] + 6, box[1] + box[3] - 13), "HOLLYWOOD · 300 CALLS",
+            face("sans-bold", 8), (20, 50, 80))
+
+
+def _paris(pg, box):
+    """Paris: Eiffel Tower silhouette and a ballot box."""
+    pg.fillbox(box, fill=(214, 226, 236))
+    tx, ty = _pt(box, 0.30, 0.86)
+    pg.poly([(tx - 16, ty), (tx - 4, ty - 52), (tx, ty - 66), (tx + 4, ty - 52),
+             (tx + 16, ty)], fill=(70, 70, 80))
+    pg.line([(tx - 12, ty - 22), (tx + 12, ty - 22)], fill=(70, 70, 80), width=2)
+    pg.line([(tx - 7, ty - 40), (tx + 7, ty - 40)], fill=(70, 70, 80), width=2)
+    pg.rect(_box(box, 0.56, 0.52, 0.90, 0.86), fill=(200, 60, 60),
+            outline=(140, 30, 30), width=2)
+    pg.rect(_box(box, 0.66, 0.44, 0.80, 0.52), fill=(240, 240, 230),
+            outline=(140, 30, 30), width=2)
+    pg.ellipse(_box(box, 0.68, 0.60, 0.78, 0.74), fill=PAL["white"])
+    pg.text(_pt(box, 0.70, 0.60), "✓", face("sans-bold", 12), (200, 60, 60))
+    pg.text((box[0] + 6, box[1] + box[3] - 13), "PARIS · BALLOT 2027",
+            face("sans-bold", 8), (30, 50, 90))
+
+
+def _saudi(pg, box):
+    """Saudi all-clear: desert dunes, a downed missile trail, clear sky."""
+    pg.fillbox(box, fill=(240, 220, 180))
+    pg.ellipse(_box(box, 0.70, 0.06, 0.94, 0.40), fill=(255, 220, 120))
+    pg.poly([_pt(box, 0, 0.62), _pt(box, 0.35, 0.44), _pt(box, 0.70, 0.62),
+             _pt(box, 1, 0.50), _pt(box, 1, 1), _pt(box, 0, 1)],
+            fill=(220, 190, 130))
+    pg.poly([_pt(box, 0, 0.78), _pt(box, 0.45, 0.62), _pt(box, 0.85, 0.78),
+             _pt(box, 1, 0.70), _pt(box, 1, 1), _pt(box, 0, 1)],
+            fill=(200, 165, 100))
+    pg.line([_pt(box, 0.10, 0.30), _pt(box, 0.30, 0.22), _pt(box, 0.48, 0.26)],
+            fill=(120, 120, 130), width=2)
+    pg.poly([_pt(box, 0.48, 0.26), _pt(box, 0.42, 0.24), _pt(box, 0.44, 0.30)],
+            fill=(120, 120, 130))
+    pg.ellipse(_box(box, 0.56, 0.14, 0.66, 0.28), fill=(255, 255, 255),
+               outline=(34, 120, 60), width=2)
+    pg.text(_pt(box, 0.585, 0.15), "✓", face("sans-bold", 10), (34, 120, 60))
+    pg.text((box[0] + 6, box[1] + box[3] - 13), "JAZAN · ALL CLEAR",
+            face("sans-bold", 8), (90, 60, 20))
+
+
+def _libya(pg, box):
+    """Libya seizure: port crates stamped SEIZED under a crane."""
+    pg.fillbox(box, fill=(200, 210, 220))
+    pg.line([_pt(box, 0.12, 0.10), _pt(box, 0.12, 0.55)], fill=(60, 60, 70),
+            width=4)
+    pg.line([_pt(box, 0.12, 0.10), _pt(box, 0.80, 0.10)], fill=(60, 60, 70),
+            width=4)
+    pg.line([_pt(box, 0.80, 0.10), _pt(box, 0.80, 0.30)], fill=(60, 60, 70),
+            width=2)
+    pg.rect(_box(box, 0.72, 0.30, 0.88, 0.44), fill=(180, 60, 50))
+    pg.rect(_box(box, 0.10, 0.58, 0.34, 0.80), fill=(40, 90, 140))
+    pg.rect(_box(box, 0.38, 0.58, 0.62, 0.80), fill=(200, 140, 40))
+    pg.rect(_box(box, 0.66, 0.58, 0.90, 0.80), fill=(90, 120, 80))
+    pg.rect(_box(box, 0.30, 0.66, 0.70, 0.78), fill=PAL["white"],
+            outline=PAL["ruby"], width=2)
+    pg.text(_pt(box, 0.34, 0.68), "SEIZED", face("sans-bold", 10), PAL["ruby"])
+    pg.rect(_box(box, 0, 0.84, 1, 1), fill=(70, 110, 150))
+    pg.text((box[0] + 6, box[1] + box[3] - 13), "BENGHAZI · PORT RAID",
+            face("sans-bold", 8), (20, 50, 80))
+
+
+def _geology(pg, box):
+    """Earth's missing billion years: rock strata and a magnifier."""
+    pg.fillbox(box, fill=(232, 224, 205))
+    bands = [(0.62, (150, 120, 80)), (0.70, (120, 100, 70)),
+             (0.78, (90, 80, 60)), (0.86, (170, 140, 100)),
+             (0.94, (110, 90, 65))]
+    for fy, col in bands:
+        pg.rect(_box(box, 0, fy - 0.08, 1, fy), fill=col)
+    pg.line([_pt(box, 0.10, 0.62), _pt(box, 0.30, 0.50), _pt(box, 0.55, 0.60),
+             _pt(box, 0.80, 0.46), _pt(box, 0.95, 0.54)],
+            fill=(60, 50, 40), width=2)
+    cx, cy = _pt(box, 0.62, 0.32)
+    pg.ellipse((cx - 20, cy - 20, cx + 20, cy + 20), fill=(200, 225, 235),
+               outline=(40, 60, 90), width=3)
+    pg.line([(cx + 14, cy + 14), (cx + 30, cy + 30)], fill=(40, 60, 90), width=4)
+    pg.ellipse((cx - 10, cy - 12, cx - 2, cy + 2), fill=(90, 130, 90))
+    pg.ellipse((cx + 2, cy + 4, cx + 10, cy + 12), fill=(120, 100, 70))
+    pg.text((box[0] + 6, box[1] + box[3] - 13), "1BN YEARS FOUND",
+            face("sans-bold", 8), (60, 50, 30))
 
 
 SKETCHES = {
+    "summit3": _summit3,
     "gta": _gta,
-    "summit": _summit,
-    "court": _court,
-    "voyager": _voyager,
     "ipo": _ipo,
-    "nvidia": _nvidia,
-    "gemini": _gemini,
-    "eu": _eu,
-    "australia": _australia,
-    "lakers": _lakers,
-    "jakarta": _jakarta,
+    "court": _court,
+    "cop31": _cop31,
     "cyclone": _cyclone,
-    "markets": _markets,
+    "kyiv": _kyiv,
+    "apec": _apec,
+    "florida": _florida,
+    "paris": _paris,
+    "saudi": _saudi,
+    "libya": _libya,
+    "geology": _geology,
 }
 
 # ---- the day's stories --------------------------------------------------
 # Headlines and decks are written here, in my own words, from the day's
-# reporting (Reuters, AP, AFP, BBC, Al Jazeera, NASA, ONS, IMD, ANTARA,
-# BMKG). Verified facts: GTA VI 99 on Metacritic (Guardian); Trump-Putin
-# one-on-one in China, first since Alaska Aug 2025 (AP); ICJ judgment in
-# The Gambia v. Myanmar on 19 Nov (ICJ); Voyager 1 one light-day,
-# 25.9bn km, NASA confirms 19 Nov (NASA); Anthropic IPO $83, above the
-# $70-78 range, ~$1.5tn valuation (Reuters); Nvidia $115.8bn +103%
-# (company); Gemini 4 Neon 1m-token model card 18 Nov (DeepMind);
-# EU E45bn loan, E70bn gap (FT/Commission); Cyclone Akvan landfall
-# 20 Nov, 204,070 to evacuate (IMD); Lakers 118-114 OT, Doncic 36,
-# Grimes 47 (AP); S&P 500 -0.50% to 7,304, fifth straight fall,
-# Dow -1.32%, gold -2.75% to $3,758 (market data).
+# reporting (Reuters, AP, AFP, BBC, The Hindu, IMD, NASA, ICJ, Pew).
+# Thursday 19 November 2026, verified as first reported that day:
+# the first three-way summit in Shenzhen (AP); GTA VI unlocks at
+# midnight, 15.9m pre-orders (Rockstar/retail); Anthropic IPO priced
+# $83, $81.3bn raised, ~$1.5tn valuation (Reuters); ICJ judgment in
+# The Gambia v. Myanmar (ICJ); COP31 final 48 hours, $120bn adaptation
+# fund open (UNFCCC); Cyclone Akvan, 200,000 to evacuate, landfall
+# Friday near Puri (IMD); APEC adopts the Shenzhen Declaration
+# (APEC); Florida floods, 300 rescue calls (local reports); Mélenchon
+# a plausible president, justice minister concedes (French press);
+# Saudi all-clear after a Houthi missile downed (Saudi press);
+# Libya's biggest drug seizure in Benghazi (Libyan officials);
+# Earth's missing billion years explained, Nature study (Nature).
 
 FEATURED = [
     {
-        "num": 1, "region": "GLOBAL", "topic": "GAMES",
-        "headline": "Gamers enter Vice City as GTA VI goes on sale",
-        "deck": "The global rollout begins at midnight; the game scores 99 on Metacritic.",
+        "num": 1, "region": "ASIA", "topic": "SUMMIT",
+        "headline": "Three leaders hold first three-way summit",
+        "deck": "The three nuclear powers meet at APEC; arms control and Iran top the agenda.",
+        "sketch": "summit3", "lon": 114.1, "lat": 22.5,
+    },
+    {
+        "num": 2, "region": "GLOBAL", "topic": "GAMES",
+        "headline": "GTA VI arrives after a 13-year wait",
+        "deck": "Unlocks at midnight worldwide, New Zealand first; 15.9m pre-orders banked.",
         "sketch": "gta", "lon": -80.2, "lat": 25.8,
     },
     {
-        "num": 2, "region": "ASIA", "topic": "SUMMIT",
-        "headline": "Trump and Putin meet in China",
-        "deck": "First face-to-face since Alaska in August 2025, at the APEC summit.",
-        "sketch": "summit", "lon": 114.1, "lat": 22.5,
-    },
-    {
-        "num": 3, "region": "EUROPE", "topic": "COURTS",
-        "headline": "World court rules on Myanmar case",
-        "deck": "Judges deliver their verdict in The Gambia v. Myanmar over the Rohingya.",
-        "sketch": "court", "lon": 4.3, "lat": 52.1,
-    },
-    {
-        "num": 4, "region": "SPACE", "topic": "SCIENCE",
-        "headline": "Voyager 1 reaches one light-day",
-        "deck": "NASA confirms it; a signal sent today arrives tomorrow.",
-        "sketch": "voyager", "lon": None, "lat": None,
-    },
-    {
-        "num": 5, "region": "AMERICAS", "topic": "BUSINESS",
-        "headline": "Anthropic IPO priced at $83 a share",
-        "deck": "Above the $70-78 range; a $1.5 trillion valuation on debut.",
+        "num": 3, "region": "AMERICAS", "topic": "MARKETS",
+        "headline": "Anthropic in the biggest IPO on record",
+        "deck": "Priced at $83, the Claude maker raised $81.3bn and is valued near $1.5tn.",
         "sketch": "ipo", "lon": -74.0, "lat": 40.7,
     },
     {
-        "num": 6, "region": "AMERICAS", "topic": "BUSINESS",
-        "headline": "Nvidia revenue doubles to $115.8bn",
-        "deck": "Sales up 103% on AI demand; shares slip 3% after the report.",
-        "sketch": "nvidia", "lon": -122.0, "lat": 37.4,
+        "num": 4, "region": "EUROPE", "topic": "LAW",
+        "headline": "World Court rules on Rohingya case",
+        "deck": "The ICJ reads its judgment in The Gambia's case.",
+        "sketch": "court", "lon": 4.3, "lat": 52.1,
     },
     {
-        "num": 7, "region": "EUROPE", "topic": "TECH",
-        "headline": "Google unveils Gemini 4 Neon",
-        "deck": "A 1m-token model card; Genie 4 opens to Ultra users.",
-        "sketch": "gemini", "lon": -0.1, "lat": 51.5,
+        "num": 5, "region": "EUROPE", "topic": "CLIMATE",
+        "headline": "COP31 enters its final 48 hours",
+        "deck": "Ministers take over; the $120bn fund stays open.",
+        "sketch": "cop31", "lon": 30.7, "lat": 36.9,
     },
     {
-        "num": 8, "region": "EUROPE", "topic": "UKRAINE AID",
-        "headline": "EU proposes €45bn loan for Ukraine",
-        "deck": "Capitals asked to back it; Kyiv faces a €70bn gap.",
-        "sketch": "eu", "lon": 4.4, "lat": 50.8,
-    },
-    {
-        "num": 9, "region": "OCEANIA", "topic": "DIPLOMACY",
-        "headline": "Australia sanctions Israeli settlers",
-        "deck": "West Bank settlers sanctioned; Albanese pictured with Putin.",
-        "sketch": "australia", "lon": 149.1, "lat": -35.3,
-    },
-    {
-        "num": 10, "region": "AMERICAS", "topic": "SPORT",
-        "headline": "Grimes' 47 lifts Lakers in OT",
-        "deck": "Doncic adds 36 as LA rallies from 18 down to win 118-114.",
-        "sketch": "lakers", "lon": -118.2, "lat": 34.05,
-    },
-    {
-        "num": 11, "region": "ASIA", "topic": "INDONESIA",
-        "headline": "Palace sweeps Prabowo's circle",
-        "deck": "Security review after an alleged tap; jobs law passes.",
-        "sketch": "jakarta", "lon": 106.8, "lat": -6.2,
-    },
-    {
-        "num": 12, "region": "ASIA", "topic": "WEATHER",
-        "headline": "Cyclone Akvan nears India's coast",
-        "deck": "Landfall due Friday; 204,070 people told to move.",
+        "num": 6, "region": "ASIA", "topic": "STORM",
+        "headline": "Akvan bears down as 200,000 flee the coast",
+        "deck": "Red alerts in 11 districts; landfall near Puri Friday.",
         "sketch": "cyclone", "lon": 83.0, "lat": 18.0,
     },
     {
-        "num": 13, "region": "AMERICAS", "topic": "MARKETS",
-        "headline": "S&P 500 falls for a fifth day",
-        "deck": "Fed minutes point to more hikes; gold at a 14-month low.",
-        "sketch": "markets", "lon": -77.0, "lat": 38.9,
+        "num": 7, "region": "EUROPE", "topic": "WAR",
+        "headline": "Ukraine left off the Shenzhen agenda",
+        "deck": "The war will not be raised, the White House says.",
+        "sketch": "kyiv", "lon": 30.5, "lat": 50.45,
+    },
+    {
+        "num": 8, "region": "ASIA", "topic": "TRADE",
+        "headline": "APEC leaders adopt the Shenzhen Declaration",
+        "deck": "Twenty-one economies back digital trade and a joint roadmap.",
+        "sketch": "apec", "lon": 114.1, "lat": 22.5,
+    },
+    {
+        "num": 9, "region": "AMERICAS", "topic": "WEATHER",
+        "headline": "Flooded Florida braces for still more rain",
+        "deck": "A foot of rain in Hollywood; 300 rescue calls in a night.",
+        "sketch": "florida", "lon": -80.2, "lat": 26.0,
+    },
+    {
+        "num": 10, "region": "EUROPE", "topic": "POLITICS",
+        "headline": "Mélenchon could win, says justice minister",
+        "deck": "The hard-left leader is a plausible president, the minister concedes.",
+        "sketch": "paris", "lon": 2.35, "lat": 48.85,
+    },
+    {
+        "num": 11, "region": "MIDDLE EAST", "topic": "GULF",
+        "headline": "Saudi Arabia says danger has passed",
+        "deck": "All-clear after a Houthi missile was downed.",
+        "sketch": "saudi", "lon": 46.7, "lat": 24.7,
+    },
+    {
+        "num": 12, "region": "AFRICA", "topic": "CRIME",
+        "headline": "Cocaine and pills seized in eastern Libya",
+        "deck": "Officials display a huge drug haul seized in the east.",
+        "sketch": "libya", "lon": 20.1, "lat": 32.1,
+    },
+    {
+        "num": 13, "region": "GLOBAL", "topic": "SCIENCE",
+        "headline": "Earth's missing billion years are explained",
+        "deck": "A Nature study blames mantle currents and ancient ice sheets.",
+        "sketch": "geology", "lon": -0.1, "lat": 51.5,
     },
 ]
 
-# (place, brief, lon, lat, region) — 32 short stories, numbered 14–45.
+# (place, brief, lon, lat, region) — 29 short stories, numbered 14–42.
 BRIEFS = [
-    ("Gaza City", "Israeli forces move into central Gaza", 34.5, 31.5, "MIDDLE EAST"),
-    ("Baghdad", "Iraq jails six French ISIL recruits for life", 44.4, 33.3, "MIDDLE EAST"),
-    ("Chisinau", "Moldova summons Russian envoy over drones", 28.8, 47.0, "EUROPE"),
-    ("Madrid", "Police clash with strikers in Spain", -3.7, 40.4, "EUROPE"),
-    ("Sacramento", "Atmospheric river floods California", -121.5, 38.6, "AMERICAS"),
-    ("Caracas", "Hegseth makes first Venezuela visit", -66.9, 10.5, "AMERICAS"),
-    ("Fort Meade", "NSA network outage disrupts spies", -76.8, 39.1, "AMERICAS"),
-    ("Frankfurt", "Deutsche Bank's $582m Epstein deals", 8.7, 50.1, "EUROPE"),
+    ("Gaza", "Israeli tanks cross the Yellow Line", 34.5, 31.5, "MIDDLE EAST"),
+    ("Crimea", "Bridge attacked again; traffic halted", 33.5, 45.0, "EUROPE"),
+    ("Canberra", "Australia sanctions Israeli settlers", 149.1, -35.3, "OCEANIA"),
+    ("Ottawa", "Canada rethinks China ties, seeks US deal", -75.7, 45.4, "AMERICAS"),
+    ("New Delhi", "Modi meets the Prince and Princess of Wales", 77.2, 28.6, "ASIA"),
+    ("Tokyo", "India and Japan review defence ties", 139.7, 35.7, "ASIA"),
+    ("Bengaluru", "Amazon pledges $7bn for renewables", 77.6, 13.0, "ASIA"),
+    ("Sydney", "Duckett's 133 puts England on top", 151.2, -33.9, "OCEANIA"),
+    ("Auckland", "New Zealand plays GTA VI first", 174.8, -36.8, "OCEANIA"),
+    ("Baghdad", "Six French ISIL members jailed for life", 44.4, 33.3, "MIDDLE EAST"),
+    ("Nairobi", "Kenya floods kill six as Ruto speaks", 36.8, -1.3, "AFRICA"),
+    ("Washington", "Senators warn AI cyber threats grow", -77.0, 38.9, "AMERICAS"),
+    ("Mexico City", "Banxico cuts rates to 6.25% on 3–2 vote", -99.1, 19.4, "AMERICAS"),
+    ("Seoul", "551,864 sit Korea's college exam", 127.0, 37.5, "ASIA"),
+    ("London", "National Grid debunks viral blackout post", -0.1, 51.5, "EUROPE"),
+    ("Madrid", "General strike disrupts ports", -3.7, 40.4, "EUROPE"),
+    ("Prague", "Crowds demand media freedom", 14.4, 50.1, "EUROPE"),
+    ("Jerusalem", "Eisenkot tapped to lead government", 35.2, 31.8, "MIDDLE EAST"),
+    ("Caracas", "Hegseth signs US–Venezuela deal", -66.9, 10.5, "AMERICAS"),
+    ("Manama", "Bapco refinery back on its feet", 50.6, 26.2, "MIDDLE EAST"),
+    ("Riyadh", "Gulf leaders urge Trump: no Iran strike", 46.7, 24.7, "MIDDLE EAST"),
+    ("Washington", "Vance: no 'forever war' in the Gulf", -77.0, 38.9, "AMERICAS"),
+    ("Sacramento", "California braces for atmospheric river", -121.5, 38.6, "AMERICAS"),
+    ("La Paz", "Bolivia declares El Niño emergency", -68.1, -16.5, "AMERICAS"),
+    ("Chisinau", "Moldova summons Russian envoy", 28.8, 47.0, "EUROPE"),
     ("Mogadishu", "Somalia accuses UAE of secret bases", 45.3, 2.0, "AFRICA"),
-    ("Varna", "Sunken tanker 'hit by projectiles'", 27.5, 43.2, "EUROPE"),
-    ("Washington", "US proposes tougher green-card rules", -77.0, 38.9, "AMERICAS"),
-    ("Ottawa", "Carney adjusts China ties, eyes US deal", -75.7, 45.4, "AMERICAS"),
-    ("Paris", "Mélenchon 'could win' French presidency", 2.35, 48.85, "EUROPE"),
-    ("Riyadh", "Saudi Arabia: danger passed in south", 46.7, 24.7, "MIDDLE EAST"),
-    ("Benghazi", "Cocaine and millions of pills seized", 20.1, 32.1, "AFRICA"),
-    ("Rahway", "Merck launches new rabies vaccine for pets", -74.3, 40.6, "AMERICAS"),
-    ("San Francisco", "OpenAI models improve AMD chips 14%", -122.4, 37.8, "AMERICAS"),
-    ("Sacramento", "California unveils AI safety plan", -121.5, 38.6, "AMERICAS"),
-    ("Shenzhen", "Tencent open-sources 224bn-parameter Hy4", 114.1, 22.5, "ASIA"),
-    ("Brussels", "ENISA: AI enables mass cyberattacks", 4.4, 50.8, "EUROPE"),
-    ("Washington", "AI cyber threats 'outpace defences'", -77.0, 38.9, "AMERICAS"),
-    ("Salt Lake City", "Sensabaugh's 40 ends Jazz skid", -111.9, 40.8, "AMERICAS"),
-    ("Philadelphia", "Embiid's 37 lifts 76ers past Nets", -75.2, 39.95, "AMERICAS"),
-    ("Houston", "NFL Thursday: Colts visit Texans", -95.4, 29.8, "AMERICAS"),
-    ("Vandenberg", "SpaceX Falcon 9 lifts USSF-317", -120.6, 34.6, "AMERICAS"),
+    ("Frankfurt", "Deutsche Bank's $582m Epstein deals", 8.7, 50.1, "EUROPE"),
     ("Kuala Lumpur", "Malaysia's GDP grows 5.5% in Q3", 101.7, 3.1, "ASIA"),
     ("Jakarta", "Bank Indonesia lifts rate to 6%", 106.8, -6.2, "ASIA"),
-    ("Tallinn", "Estonia courts Jakarta on digital ties", 24.7, 59.4, "EUROPE"),
-    ("New York", "Bristol-Myers lifts 2026 guidance", -74.0, 40.7, "AMERICAS"),
-    ("Palo Alto", "Palo Alto Networks in $4.5bn deal", -122.1, 37.4, "AMERICAS"),
-    ("Beijing", "China, Russia deepen ties at APEC", 116.4, 39.9, "ASIA"),
-    ("Kyiv", "Zelensky: frontline positions are strong", 30.5, 50.45, "EUROPE"),
 ]
 
-# BY THE NUMBERS strip: (big figure, caption)
+# Big-number strip under the region strip: (big figure, caption)
 FIGURES = [
-    ("99", "GTA VI score on Metacritic at launch"),
-    ("$115.8bn", "Nvidia revenue in the quarter, up 103%"),
-    ("47", "Quentin Grimes' career-high points for the Lakers"),
-    ("$83", "Anthropic's IPO price a share, above its range"),
+    ("$81.3bn", "largest IPO on record"),
+    ("15.9m", "GTA VI pre-orders banked"),
+    ("200,000", "evacuated ahead of Akvan"),
+    ("$120bn", "COP31 adaptation finance"),
+    ("730,000", "Rohingya who fled in 2017"),
+    ("13 yrs", "wait since GTA V ended"),
 ]
+
+# Stories first reported earlier, kept OUT of Thursday's count:
+DATE_CHECK = (
+    "DATE CHECK — first reported Wednesday 18 November, so not on this page "
+    "as news: the EU's proposed €45bn loan for Ukraine · Voyager 1 crossing "
+    "one light-day, at 10:16 GMT Wednesday · the House Democrats' 251–11 vote "
+    "nominating Hakeem Jeffries · Pew's projection that Islam becomes the "
+    "largest religion by 2035 · the first COP31 draft (Monday) · Gogh's record "
+    "$190.4m sale in New York · Petrolia's Alaska win."
+)
+
+TOTAL_STORIES = len(FEATURED) + len(BRIEFS)  # 42
 
 # ---- page composition -----------------------------------------------------
 
 LAYOUT = {
     "lead_x": (MARGIN, 353, 684),
     "lead_w": 318,
-    "lead_y": 150,
-    "lead_ill": 124,
+    "lead_y": 176,
+    "lead_ill": 88,
     "mid_x": (MARGIN, 220, 419, 617, 816),
     "mid_w": 186,
-    "row1_y": 400,
-    "row2_y": 560,
-    "mid_ill": 68,
-    "stats_y": 720,
-    "bottom_y": 778,
-    "footer_y": 1002,
-    "rule_y": 392,
+    "row1_y": 394,
+    "row2_y": 543,
+    "mid_ill": 58,
+    "bottom_y": 692,
+    "map_box": (MARGIN, 710, 320, 180),
+    "date_y": 946,
+    "footer_y": 990,
+    "rule_y": 388,
 }
 
 
+def region_counts():
+    """Count stories per strip tab from FEATURED + BRIEFS."""
+    counts = {}
+    for story in FEATURED:
+        counts[story["region"]] = counts.get(story["region"], 0) + 1
+    for _p, _t, _lo, _la, region in BRIEFS:
+        counts[region] = counts.get(region, 0) + 1
+    out = []
+    for label, regions, tint in STRIP:
+        out.append((label, sum(counts.get(r, 0) for r in regions), tint))
+    return out
+
+
 def draw_masthead(pg):
-    pg.rect((0, 0, W, 138), fill=PAL["pine"])
-    pg.rect((0, 138, W, 141), fill=PAL["gilt"])
     kicker = face("sans-bold", 13)
-    pg.caps(MARGIN, 16, "THE DAILY GLOBE", kicker, PAL["gilt"])
-    right = "45 STORIES · 6 CONTINENTS · ONE DAY"
+    pg.caps(MARGIN, 10, "THE DAILY GLOBE", kicker, PAL["ruby"])
+    right = "THURSDAY'S NEWS · ONE PAGE · 42 STORIES"
     rw = pg.caps_width(right, kicker)
-    pg.caps(W - MARGIN - rw, 16, right, kicker, PAL["gilt"])
-    pg.text((MARGIN, 42), "Thursday 19 November 2026",
-            face("serif-bold", 54), PAL["cream"])
-    pg.text((MARGIN, 108),
-            "Every story on this page happened, or was first reported, on this day.",
-            face("serif-italic", 14), PAL["cream_dim"])
+    pg.caps(W - MARGIN - rw, 10, right, kicker, PAL["ruby"])
+    pg.text((MARGIN, 30), "Thursday 19 November 2026",
+            face("serif-bold", 48), PAL["ink"])
+    pg.text((MARGIN, 84),
+            "Three leaders meet in Shenzhen · A court rules on Myanmar · "
+            "The biggest IPO ever debuts",
+            face("serif-italic", 14), PAL["ruby"])
+    pg.rect((0, 104, W, 107), fill=PAL["pine"])
+    pg.rect((0, 107, W, 109), fill=PAL["gilt"])
+
+
+def draw_region_strip(pg):
+    y0, y1 = 113, 129
+    counts = region_counts()
+    total = sum(c for _l, c, _t in counts)
+    assert total == TOTAL_STORIES, f"region strip sums to {total}, not {TOTAL_STORIES}"
+    x = MARGIN
+    cell = INNER / len(counts)
+    for label, n, tint in counts:
+        pg.fillbox((x, y0, cell - 2, y1 - y0), tint)
+        pg.caps(x + 6, y0 + 3, f"{label} {n}", face("sans-bold", 10),
+                PAL["white"])
+        x += cell
+
+
+def draw_figures(pg):
+    y0 = 133
+    pg.line([(MARGIN, y0 - 3), (W - MARGIN, y0 - 3)], fill=PAL["rule"])
+    col_w = INNER / len(FIGURES)
+    x = MARGIN
+    for big, cap in FIGURES:
+        pg.text((x, y0), big, face("serif-bold", 19), PAL["ruby"])
+        pg.text((x, y0 + 24), cap, face("sans", 9.5), PAL["deck"])
+        x += col_w
+    pg.line([(MARGIN, y0 + 38), (W - MARGIN, y0 + 38)], fill=PAL["rule"])
 
 
 def draw_tag(pg, x, y, story, small=False):
@@ -738,8 +850,8 @@ def draw_lead(pg, story, x):
     hy = ty + 24
     head = face("serif-bold", 24)
     lines = pg.wrap(story["headline"], head, LAYOUT["lead_w"], 2)
-    pg.para(x, hy, lines, head, PAL["ink"], 28)
-    dy = hy + 28 * len(lines) + 4
+    pg.para(x, hy, lines, head, PAL["ink"], 27)
+    dy = hy + 27 * len(lines) + 4
     deck = face("sans", 12)
     dlines = pg.wrap(story["deck"], deck, LAYOUT["lead_w"], 2)
     pg.para(x, dy, dlines, deck, PAL["deck"], 15)
@@ -754,33 +866,17 @@ def draw_card(pg, story, x, y0):
     hy = ty + 22
     head = face("serif-bold", 14)
     lines = pg.wrap(story["headline"], head, LAYOUT["mid_w"], 2)
-    pg.para(x, hy, lines, head, PAL["ink"], 17)
-    dy = hy + 17 * len(lines) + 2
+    pg.para(x, hy, lines, head, PAL["ink"], 16)
+    dy = hy + 16 * len(lines) + 2
     deck = face("sans", 10.5)
     dlines = pg.wrap(story["deck"], deck, LAYOUT["mid_w"], 2)
     pg.para(x, dy, dlines, deck, PAL["deck"], 12.5)
 
 
-def draw_figures(pg):
-    sy = LAYOUT["stats_y"]
-    pg.line([(MARGIN, sy), (W - MARGIN, sy)], fill=PAL["rule"])
-    pg.line([(MARGIN, sy + 50), (W - MARGIN, sy + 50)], fill=PAL["rule"])
-    pg.text((MARGIN, sy + 6), "BY THE", face("sans-bold", 12), PAL["ruby"])
-    pg.text((MARGIN, sy + 22), "NUMBERS", face("sans-bold", 12), PAL["ruby"])
-    sx, sw = 150, 205
-    for big, cap in FIGURES:
-        pg.text((sx, sy + 2), big, face("serif-bold", 19), PAL["ink"])
-        cap_font = face("sans", 10)
-        clines = pg.wrap(cap, cap_font, sw - 8, 2)
-        pg.para(sx, sy + 26, clines, cap_font, PAL["deck"], 11)
-        sx += sw
-    pg.line([(sx, sy + 4), (sx, sy + 46)], fill=PAL["rule"])
-
-
 def draw_bottom(pg):
     by = LAYOUT["bottom_y"]
     pg.text((MARGIN, by), "WHERE IT HAPPENED", face("sans-bold", 11), PAL["ink"])
-    map_box = (MARGIN, by + 18, 326, 158)
+    map_box = LAYOUT["map_box"]
     draw_atlas(pg, map_box, FEATURED, BRIEFS)
     pg.rect((map_box[0], map_box[1], map_box[0] + map_box[2],
              map_box[1] + map_box[3]), outline=PAL["rule"])
@@ -789,51 +885,69 @@ def draw_bottom(pg):
               [("Asia", (176, 132, 20)), ("Oceania", (14, 106, 106)),
                ("Global", (110, 70, 150))]]
     for ri, row in enumerate(legend):
-        ly = by + 182 + ri * 12
+        ly = map_box[1] + map_box[3] + 6 + ri * 12
         lx = MARGIN
         for name, tint in row:
             pg.disc(lx + 3.5, ly + 5.5, 3.5, tint)
             pg.text((lx + 10, ly), name, face("sans", 9), PAL["ink"])
             lx += 10 + pg.width(name, face("sans", 9)) + 8
-    pg.text((MARGIN, by + 208),
-            "Numbered pins: stories 1–13 · dots: briefs 14–45.",
+    pg.text((MARGIN, map_box[1] + map_box[3] + 32),
+            "Numbered pins: stories 1–13 · dots: briefs 14–42.",
             face("sans", 9), PAL["slate"])
     ax = 362
-    pg.text((ax, by), "ALSO ON THURSDAY 19 NOVEMBER — 32 MORE STORIES",
+    pg.text((ax, by), "ALSO ON THURSDAY 19 NOVEMBER — 29 MORE STORIES",
             face("sans-bold", 11), PAL["ink"])
-    col_x = [ax, ax + 328]
-    body = face("sans", 10)
-    numf = face("sans-bold", 10)
-    placef = face("sans-bold", 10)
+    col_x = [ax, ax + 206, ax + 412]
+    col_w = 198
+    body = face("sans", 9.5)
+    numf = face("sans-bold", 9.5)
+    placef = face("sans-bold", 9.5)
     for i, item in enumerate(BRIEFS):
-        col = 0 if i < 16 else 1
-        row = i % 16
+        col = i // 10
+        row = i % 10
         x = col_x[col]
-        y = by + 20 + row * 12.5
+        y = by + 18 + row * 23
         place, text = item[0], item[1]
         num = str(14 + i)
         pg.text((x, y), num, numf, PAL["ruby"])
         nx = x + pg.width(num + " ", numf)
-        pg.text((nx, y), place + ": ", placef, PAL["ink"])
-        tx = nx + pg.width(place + ": ", placef)
-        pg.text((tx, y), text, body, PAL["deck"])
+        first = f"{place} — {text}"
+        lines = pg.wrap(first, body, col_w - (nx - x), 2)
+        # place in bold on the first line, rest in regular
+        pg.text((nx, y), place + " — ", placef, PAL["ink"])
+        rest = text
+        px = nx + pg.width(place + " — ", placef)
+        wlines = pg.wrap(rest, body, col_w - (px - x), 2)
+        pg.para(px, y, wlines, body, PAL["deck"], 11)
+        _ = lines
+
+
+def draw_date_check(pg):
+    y0 = LAYOUT["date_y"]
+    pg.rect((MARGIN, y0, W - MARGIN, y0 + 40), outline=PAL["ruby"], width=2)
+    f = face("sans", 10)
+    lines = pg.wrap(DATE_CHECK, f, INNER - 16, 3)
+    pg.para(MARGIN + 8, y0 + 4, lines, f, PAL["ink"], 12)
 
 
 def draw_footer(pg):
     fy = LAYOUT["footer_y"]
     pg.text((MARGIN, fy),
-            "Every story on this page was reported on Thursday 19 November 2026; "
-            "disputed claims are attributed.",
+            "Every story here happened, or was first reported, on Thursday "
+            "19 November 2026. Disputed claims are attributed, not stated "
+            "as fact.",
             face("sans", 9.5), PAL["slate"])
     pg.text((MARGIN, fy + 12),
-            "Sources: Reuters, AP, AFP, BBC, Al Jazeera, NASA, ONS, IMD, ANTARA, "
-            "BMKG. Original drawings.",
+            "Sources: Reuters, AP, AFP, BBC, The Hindu, IMD, NASA, ICJ, "
+            "Pew. Original drawings.",
             face("sans", 9.5), PAL["slate"])
 
 
 def build_page():
     pg = Page()
     draw_masthead(pg)
+    draw_region_strip(pg)
+    draw_figures(pg)
     for story, x in zip(FEATURED[:3], LAYOUT["lead_x"]):
         draw_lead(pg, story, x)
     pg.line([(MARGIN, LAYOUT["rule_y"]), (W - MARGIN, LAYOUT["rule_y"])],
@@ -842,8 +956,8 @@ def build_page():
         draw_card(pg, story, x, LAYOUT["row1_y"])
     for story, x in zip(FEATURED[8:13], LAYOUT["mid_x"]):
         draw_card(pg, story, x, LAYOUT["row2_y"])
-    draw_figures(pg)
     draw_bottom(pg)
+    draw_date_check(pg)
     draw_footer(pg)
     return pg.img
 
@@ -873,18 +987,31 @@ def check_fits():
             print(f"OVERFLOW card deck #{story['num']}: {n} lines")
             bad = True
     for i, item in enumerate(BRIEFS):
-        total = (meter.width(str(14 + i) + " ", face("sans-bold", 10))
-                 + meter.width(item[0] + ": ", face("sans-bold", 10))
-                 + meter.width(item[1], face("sans", 10)))
-        if total > 312:
-            print(f"OVERFLOW also #{14 + i}: {total:.0f}px > 312px")
+        place, text = item[0], item[1]
+        w = meter.width(place + " — ", face("sans-bold", 9.5))
+        n = len(meter.wrap(text, face("sans", 9.5), 198 - w, 99))
+        if n > 2:
+            print(f"OVERFLOW also #{14 + i}: {n} lines")
             bad = True
-    title_w = meter.width("Thursday 19 November 2026", face("serif-bold", 54))
+    dc = meter.wrap(DATE_CHECK, face("sans", 10), INNER - 16, 99)
+    if len(dc) > 3:
+        print(f"OVERFLOW date check: {len(dc)} lines")
+        bad = True
+    title_w = meter.width("Thursday 19 November 2026", face("serif-bold", 48))
     if title_w > INNER:
         print(f"OVERFLOW masthead title: {title_w:.0f}px")
         bad = True
+    counts = region_counts()
+    total = sum(c for _l, c, _t in counts)
+    if total != TOTAL_STORIES:
+        print(f"REGION MISMATCH: strip sums to {total}, stories {TOTAL_STORIES}")
+        bad = True
+    if len(FEATURED) + len(BRIEFS) != TOTAL_STORIES:
+        print("STORY COUNT MISMATCH")
+        bad = True
     if not bad:
-        print("fits: all blocks within their boxes")
+        print(f"fits: all blocks within their boxes; "
+              f"regions={counts} total={TOTAL_STORIES}")
     return not bad
 
 
