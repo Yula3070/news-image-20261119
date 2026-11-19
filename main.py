@@ -13,7 +13,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 IMAGE = "entry.png"
-OUTPUT = "output.png"
+OUTPUT = "entry.png"
 
 
 def main():

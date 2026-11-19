@@ -1,0 +1,3 @@
+# Round 2 fix — news-image-20261119
+
+R1 gagal di gate server karena `main.py` menulis `output.png`, padahal kompetisi mewajibkan program menulis ke `/output/entry.png` — gate tidak menemukan `entry.png` sehingga entry tidak dinilai sama sekali. Perbaikan: satu baris di `main.py`, `OUTPUT = "output.png"` → `OUTPUT = "entry.png"`. Gambar tidak berubah. Verifikasi: `main.py` dijalankan 2x dengan `MAKEFUN_OUTPUT_DIR` berbeda (`/tmp/ni19-r2-run1`, `/tmp/ni19-r2-run2`); keduanya menulis `entry.png` dengan sha256 identik `b6038494aaaadba7bdb8fe7cba7ee0e45afac43158fae99bed2ac659e2ed0547`, sama persis dengan `entry.png` di repo.
